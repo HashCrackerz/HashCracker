@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <openssl/sha.h >
 #include "Sequenziale/sequenziale.h"
+#include <time.h>
 
 char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#-.\0"; // 67 caratteri
 
@@ -45,6 +46,9 @@ int main(int argc, char** argv)
 
     int max_test_len = 5;
 
+    // start time 
+    clock_t start = clock(); //clock() restituisce il numero di tick dall'avvio del programma
+
     for (int len = 1; len <= max_test_len; len++) {
         printf("Tentativo lunghezza %d... ", len);
         fflush(stdout);
@@ -61,9 +65,17 @@ int main(int argc, char** argv)
         }
     }
 
+    // end time 
+    clock_t end = clock();
+    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("Tempo CPU: %.4f secondi\n", seconds);
+
+    printf("Tempo impiegato: %ld", (end - start));
+
     if (strlen(found_password) == 0) {
         printf("\nPassword non trovata nel range di lunghezza 1-%d.\n", max_test_len);
     }
+
 
     //Imposta il device CUDA
     int dev = 0;
