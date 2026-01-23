@@ -49,8 +49,6 @@ void testSequenziale(unsigned char *target_hash, int min_test_len, int max_test_
     double seconds = (double)(end - start) / CLOCKS_PER_SEC;
     printf("Tempo CPU: %.4f secondi\n", seconds);
 
-    printf("Tempo impiegato: %ld", (end - start));
-
     if (strlen(found_password) == 0) {
         printf("\nPassword non trovata nel range di lunghezza 1-%d.\n", max_test_len);
     }
