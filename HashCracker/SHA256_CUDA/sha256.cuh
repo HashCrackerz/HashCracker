@@ -1,18 +1,19 @@
 /*
- * sha256.cuh CUDA Implementation of SHA256 Hashing    
- *
- * Date: 12 June 2019
- * Revision: 1
- * 
- * Based on the public domain Reference Implementation in C, by
- * Brad Conte, original code here:
- *
- * https://github.com/B-Con/crypto-algorithms
- *
- * This file is released into the Public Domain.
+ * sha256.cuh
  */
-
-
 #pragma once
 #include "config.h"
-void mcm_cuda_sha256_hash_batch(BYTE* in, WORD inlen, BYTE* out, WORD n_batch);
+
+ // Questo blocco assicura che C++ (kernel.cu) legga correttamente le funzioni C
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    void mcm_cuda_sha256_hash_batch(BYTE* in, WORD inlen, BYTE* out, WORD n_batch);
+
+    // Aggiungiamo qui la dichiarazione della tua nuova funzione
+    int launchBruteForceCUDA(unsigned char* target_hash, char* charset, int charset_len, int min_len, int max_len, char* result_buffer);
+
+#ifdef __cplusplus
+}
+#endif

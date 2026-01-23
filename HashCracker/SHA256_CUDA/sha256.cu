@@ -215,3 +215,107 @@ void mcm_cuda_sha256_hash_batch(BYTE* in, WORD inlen, BYTE* out, WORD n_batch)
 	cudaFree(cuda_outdata);
 }
 }
+
+// Kernel CUDA che genera password e controlla l'hash
+__global__ void kernel_brute_force(unsigned char* d_target_hash, char* d_charset, int charset_len, int pass_len, unsigned long long offset, volatile int* d_found, char* d_result) {
+	// Calcolo indice globale del thread
+	unsigned long long idx = offset + (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
+
+	// Se abbiamo già trovato la password, i thread successivi possono terminare subito (ottimizzazione)
+	if (*d_found) return;
+
+	// Ricostruiamo la password basandoci sull'indice (conversione da base-10 a base-N)
+	char attempt[20]; // Buffer locale per la password (assicurarsi sia > max_test_len)
+	unsigned long long temp = idx;
+
+	for (int i = 0; i < pass_len; i++) {
+		attempt[i] = d_charset[temp % charset_len];
+		temp /= charset_len;
+	}
+
+	// Hash della password generata
+	CUDA_SHA256_CTX ctx;
+	cuda_sha256_init(&ctx);
+	cuda_sha256_update(&ctx, (BYTE*)attempt, pass_len);
+
+	BYTE hash[SHA256_BLOCK_SIZE];
+	cuda_sha256_final(&ctx, hash);
+
+	// Confronto con l'hash target
+	bool match = true;
+	for (int i = 0; i < SHA256_BLOCK_SIZE; i++) {
+		if (hash[i] != d_target_hash[i]) {
+			match = false;
+			break;
+		}
+	}
+
+	// Se trovata, salviamo il risultato
+	if (match) {
+		*d_found = 1;
+		// Copiamo la password nel buffer di uscita globale
+		for (int i = 0; i < pass_len; i++) {
+			d_result[i] = attempt[i];
+		}
+		d_result[pass_len] = '\0'; // Terminatore stringa
+	}
+}
+
+// Funzione Host (wrapper)
+extern "C" int launchBruteForceCUDA(unsigned char* target_hash, char* charset, int charset_len, int min_len, int max_len, char* result_buffer) {
+
+	unsigned char* d_target;
+	char* d_charset;
+	char* d_result;
+	int* d_found;
+	int h_found = 0;
+
+	// Allocazione memoria Device
+	cudaMalloc(&d_target, SHA256_BLOCK_SIZE);
+	cudaMalloc(&d_charset, charset_len);
+	cudaMalloc(&d_result, 100); // Buffer per la password trovata
+	cudaMalloc(&d_found, sizeof(int));
+
+	// Copia dati Host -> Device
+	cudaMemcpy(d_target, target_hash, SHA256_BLOCK_SIZE, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_charset, charset, charset_len, cudaMemcpyHostToDevice);
+	cudaMemcpy(d_found, &h_found, sizeof(int), cudaMemcpyHostToDevice);
+
+	// Iteriamo per le diverse lunghezze (come fa la versione sequenziale)
+	for (int len = min_len; len <= max_len; len++) {
+
+		// Calcolo combinazioni totali: charset_len^len
+		unsigned long long total_combinations = 1;
+		for (int k = 0; k < len; k++) total_combinations *= charset_len;
+
+		// Configurazione Kernel
+		int blockSize = 256;
+		// Calcoliamo i blocchi necessari. Attenzione: per len=5 i numeri sono grandi (~1.3 miliardi)
+		unsigned long long numBlocks = (total_combinations + blockSize - 1) / blockSize;
+
+		printf("Tentativo GPU lunghezza %d (Combinazioni: %llu)...\n", len, total_combinations);
+
+		// Nota: Per numeri di blocchi molto alti, potresti dover spezzare il lancio in più kernel 
+		// per evitare il timeout del driver (TDR), ma per questo esempio lanciamo tutto insieme.
+		// Se numBlocks > 2147483647 (max int), va gestito un loop aggiuntivo.
+
+		kernel_brute_force << < (unsigned int)numBlocks, blockSize >> > (d_target, d_charset, charset_len, len, 0, d_found, d_result);
+
+		cudaDeviceSynchronize();
+
+		// Controllo se trovata
+		cudaMemcpy(&h_found, d_found, sizeof(int), cudaMemcpyDeviceToHost);
+		if (h_found) {
+			cudaMemcpy(result_buffer, d_result, 100, cudaMemcpyDeviceToHost);
+			break; // Usciamo dal loop delle lunghezze
+		}
+	}
+
+	// Pulizia
+	cudaFree(d_target);
+	cudaFree(d_charset);
+	cudaFree(d_result);
+	cudaFree(d_found);
+
+	return h_found;
+}

@@ -5,6 +5,7 @@
 #include <openssl/sha.h >
 #include "Sequenziale/sequenziale.h"
 #include <time.h>
+#include "SHA256_CUDA/sha256.cuh"
 
 char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#-.\0"; // 67 caratteri
 
@@ -56,6 +57,30 @@ void testSequenziale(unsigned char *target_hash, int min_test_len, int max_test_
     }
 }
 
+void testCUDA(unsigned char* target_hash, char* charset, int min_test_len, int max_test_len) {
+    printf("--- Inizio Test Brute Force GPU (CUDA) ---\n");
+
+    char found_password[100] = { 0 };
+    int charset_len = (int)strlen(charset);
+
+    // start time 
+    clock_t start = clock();
+
+    // Chiamata al wrapper definito in sha256.cu
+    if (launchBruteForceCUDA(target_hash, charset, charset_len, min_test_len, max_test_len, found_password)) {
+        printf("TROVATA!\n");
+        printf("Password decifrata: %s\n", found_password);
+    }
+    else {
+        printf("Password non trovata nel range specificato.\n");
+    }
+
+    // end time 
+    clock_t end = clock();
+    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
+    printf("Tempo GPU: %.4f secondi\n", seconds);
+}
+
 int main(int argc, char** argv)
 {
     /*
@@ -73,7 +98,7 @@ int main(int argc, char** argv)
     CHECK(cudaSetDevice(dev)); //Seleziona il device CUDA
 
     /* argomenti per invocare le funzioni di hash*/
-    char* secret_password = "abcd3";
+    char secret_password[] = "abcd3";
     unsigned char target_hash[SHA256_DIGEST_LENGTH];
 
     SHA256((const unsigned char*)secret_password, strlen(secret_password), target_hash);
@@ -88,7 +113,8 @@ int main(int argc, char** argv)
     /* TEST VERSIONE SEQUENZIALE */
     testSequenziale(target_hash, min_test_len, max_test_len);
 
-    
+    /* TEST VERSIONE CUDA NAIVE */
+    testCUDA(target_hash, charset, min_test_len, max_test_len);
 
     return 0;
 }
