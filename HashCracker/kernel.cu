@@ -20,16 +20,8 @@ char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
     } \
 }
 
-void testSequenziale(char *secret_password, int min_test_len, int max_test_len) {    
-    unsigned char target_hash[SHA256_DIGEST_LENGTH];
-
-    SHA256((const unsigned char*)secret_password, strlen(secret_password), target_hash);
-
+void testSequenziale(unsigned char *target_hash, int min_test_len, int max_test_len) {
     printf("--- Inizio Test Brute Force CPU ---\n");
-    printf("Target (segreto): '%s'\n", secret_password);
-    printf("Hash Target: ");
-    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", target_hash[i]);
-    printf("\n\n");
 
     char found_password[100] = { 0 };
 
@@ -73,19 +65,30 @@ int main(int argc, char** argv)
     }
     printf("%s Starting...\n", argv[0]);*/
 
-    char* secret_password = "abcd3";
-    int max_test_len = 5;
-    int min_test_len = 1; 
-
-    /* TEST VERSIONE SEQUENZIALE */
-    testSequenziale(secret_password, min_test_len, max_test_len);
-
     //Imposta il device CUDA
     int dev = 0;
     cudaDeviceProp deviceProp;
     CHECK(cudaGetDeviceProperties(&deviceProp, dev)); //Ottiene le proprietà del device 
     printf("Using Device %d: %s\n", dev, deviceProp.name);
     CHECK(cudaSetDevice(dev)); //Seleziona il device CUDA
+
+    /* argomenti per invocare le funzioni di hash*/
+    char* secret_password = "abcd3";
+    unsigned char target_hash[SHA256_DIGEST_LENGTH];
+
+    SHA256((const unsigned char*)secret_password, strlen(secret_password), target_hash);
+
+    printf("Target (segreto): '%s'\n", secret_password);
+    printf("Hash Target: ");
+    for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", target_hash[i]);
+    printf("\n\n");
+    int max_test_len = 5;
+    int min_test_len = 1; 
+
+    /* TEST VERSIONE SEQUENZIALE */
+    testSequenziale(target_hash, min_test_len, max_test_len);
+
+    
 
     return 0;
 }
