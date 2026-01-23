@@ -73,7 +73,7 @@ int main(int argc, char** argv)
     CHECK(cudaSetDevice(dev)); //Seleziona il device CUDA
 
     /* argomenti per invocare le funzioni di hash*/
-    char* secret_password = "abcd3";
+    char secret_password[] = "abcd3";
     unsigned char target_hash[SHA256_DIGEST_LENGTH];
 
     SHA256((const unsigned char*)secret_password, strlen(secret_password), target_hash);
