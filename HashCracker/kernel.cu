@@ -99,7 +99,7 @@ int main(int argc, char** argv)
 
     CHECK(cudaDeviceSynchronize()); // Attendo terminazione kernel 
     CHECK(cudaMemcpy(h_result, d_result, sizeof(char) * MAX_CANDIDATE, cudaMemcpyDeviceToHost));
-    printf("Password decifrata: %s\n", h_result);
+    printf("Password decifrata: %s\n", h_result);   
 
     // Deallocazione variaibli device
     CHECK(cudaFree(d_charSet));
