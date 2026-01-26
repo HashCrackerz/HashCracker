@@ -3,6 +3,8 @@
   <ItemGroup>
     <CudaCompile Include="kernel.cu" />
     <CudaCompile Include="SHA256_CUDA\sha256.cu" />
+    <CudaCompile Include="CUDA_NAIVE\cuda_naive.cu" />
+    <CudaCompile Include="UTILS\cuda_utils.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sequenziale\sequenziale.cpp" />
@@ -11,6 +13,8 @@
     <ClInclude Include="Sequenziale\sequenziale.h" />
     <ClInclude Include="SHA256_CUDA\config.h" />
     <ClInclude Include="SHA256_CUDA\sha256.cuh" />
+    <ClInclude Include="CUDA_NAIVE\cuda_naive.cuh" />
+    <ClInclude Include="UTILS\cuda_utils.cuh" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="TODO.md" />

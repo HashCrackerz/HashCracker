@@ -15,4 +15,17 @@
 
 #pragma once
 #include "config.h"
-void mcm_cuda_sha256_hash_batch(BYTE* in, WORD inlen, BYTE* out, WORD n_batch);
+
+# define SHA256_DIGEST_LENGTH    32
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    void mcm_cuda_sha256_hash_batch(BYTE* in, WORD inlen, BYTE* out, WORD n_batch);
+
+#ifdef __cplusplus
+}
+#endif
+
+__device__ void dev_sha256(const BYTE* data, WORD len, BYTE* out);

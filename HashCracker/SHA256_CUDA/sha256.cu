@@ -18,9 +18,8 @@
 #include <memory.h>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-extern "C" {
 #include "sha256.cuh"
-}
+
 /****************************** MACROS ******************************/
 #define SHA256_BLOCK_SIZE 32            // SHA256 outputs a 32 byte digest
 
@@ -188,6 +187,20 @@ __global__ void kernel_sha256_hash(BYTE* indata, WORD inlen, BYTE* outdata, WORD
 	CUDA_SHA256_CTX ctx;
 	cuda_sha256_init(&ctx);
 	cuda_sha256_update(&ctx, in, inlen);
+	cuda_sha256_final(&ctx, out);
+}
+
+__device__ void dev_sha256(const BYTE* data, WORD len, BYTE* out)
+{
+	CUDA_SHA256_CTX ctx;
+
+	// Inizializzazione del contesto
+	cuda_sha256_init(&ctx);
+
+	// Hashing dei dati
+	cuda_sha256_update(&ctx, data, len);
+
+	// Scrittura risultato
 	cuda_sha256_final(&ctx, out);
 }
 

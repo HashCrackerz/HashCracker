@@ -5,9 +5,9 @@
 #include <openssl/sha.h >
 #include "Sequenziale/sequenziale.h"
 #include <time.h>
-
-char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#-.\0"; // 67 caratteri
-
+#include "UTILS/cuda_utils.cuh"
+#include <math.h>
+#include "CUDA_NAIVE/cuda_naive.cuh"
 
 #define CHECK(call) \
 { \
@@ -20,42 +20,12 @@ char charset[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
     } \
 }
 
-void testSequenziale(unsigned char *target_hash, int min_test_len, int max_test_len) {
-    printf("--- Inizio Test Brute Force CPU ---\n");
-
-    char found_password[100] = { 0 };
-
-    // start time 
-    clock_t start = clock(); //clock() restituisce il numero di tick dall'avvio del programma
-
-    for (int len = min_test_len; len <= max_test_len; len++) {
-        printf("Tentativo lunghezza %d... ", len);
-        fflush(stdout);
-
-        bruteForceSequenziale(len, target_hash, charset, found_password);
-
-        if (strlen(found_password) > 0) {
-            printf("TROVATA!\n");
-            printf("Password decifrata: %s\n", found_password);
-            break;
-        }
-        else {
-            printf("Nessuna corrispondenza.\n");
-        }
-    }
-
-    // end time 
-    clock_t end = clock();
-    double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-    printf("Tempo CPU: %.4f secondi\n", seconds);
-
-    if (strlen(found_password) == 0) {
-        printf("\nPassword non trovata nel range di lunghezza 1-%d.\n", max_test_len);
-    }
-}
+#define MAX_CANDIDATE 16
 
 int main(int argc, char** argv)
 {
+    char charSet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#-.\0"; // 67 caratteri
+    int charSetLen = strlen(charSet);
     /*
     if (argc != 2) {
         printf("Usage: %s <image_file>\n", argv[0]);
@@ -84,9 +54,58 @@ int main(int argc, char** argv)
     int min_test_len = 1; 
 
     /* TEST VERSIONE SEQUENZIALE */
-    testSequenziale(target_hash, min_test_len, max_test_len);
+    testSequenziale(target_hash, min_test_len, max_test_len, charSet);
 
-    
+    int blockSize = 256;
+
+    /* TEST VERSIONE CUDA NAIVE */
+    printf("--- Inizio Test Brute Force GPU NAIVE ---\n");
+    // Allocazione variaibli device
+    BYTE* d_target_hash;
+    char* d_charSet, * d_result;
+    bool* d_found;
+    char h_result[MAX_CANDIDATE];
+
+    CHECK(cudaMalloc((void**)&d_target_hash, sizeof(BYTE) * SHA256_DIGEST_LENGTH));
+    CHECK(cudaMemcpy(d_target_hash, target_hash, sizeof(BYTE) * SHA256_DIGEST_LENGTH, cudaMemcpyHostToDevice));
+
+    CHECK(cudaMalloc((void**)&d_charSet, sizeof(char) * charSetLen));
+    CHECK(cudaMemcpy(d_charSet, charSet, sizeof(char) * charSetLen, cudaMemcpyHostToDevice));
+
+    CHECK(cudaMalloc((void**)&d_found, sizeof(bool)));
+    CHECK(cudaMemset(d_found, false, sizeof(bool)));
+
+    CHECK(cudaMalloc((void**)&d_result, MAX_CANDIDATE * sizeof(char)));  
+    CHECK(cudaMemset(d_result, 0, max_test_len * sizeof(char))); 
+
+
+    for (int len = min_test_len; len <= max_test_len; len++) 
+    {
+        unsigned long long totalCombinations = pow((double)charSetLen, (double)len);
+        printf("Controllo kernel naive con lunghezza %d (Combinazioni tot: %llu)...\n", len, totalCombinations);
+
+        int numBlocks = (totalCombinations + blockSize - 1) / blockSize;
+
+        bruteForceKernel_Naive << <numBlocks, blockSize >> > (
+            len,
+            d_target_hash,
+            d_charSet,
+            d_result,
+            charSetLen,
+            totalCombinations,
+            d_found
+            );
+    }
+
+    CHECK(cudaDeviceSynchronize()); // Attendo terminazione kernel 
+    CHECK(cudaMemcpy(h_result, d_result, sizeof(char) * MAX_CANDIDATE, cudaMemcpyDeviceToHost));
+    printf("Password decifrata: %s\n", h_result);
+
+    // Deallocazione variaibli device
+    CHECK(cudaFree(d_charSet));
+    CHECK(cudaFree(d_target_hash));
+    CHECK(cudaFree(d_found));
+    CHECK(cudaFree(d_result));
 
     return 0;
 }

@@ -1,9 +1,16 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include <stdbool.h> 
 #include <openssl/sha.h>
 #include "sequenziale.h"
+
+double cpuSecond() {
+    struct timespec ts;
+    timespec_get(&ts, TIME_UTC);
+    return ((double)ts.tv_sec + (double)ts.tv_nsec * 1.e-9);
+}
 
 // Funzione helper per verificare l'hash
 int check_hash(const char* password, int pass_len, unsigned char* target_hash) {
@@ -84,4 +91,37 @@ void bruteForceSequenziale(int len, unsigned char target_hash[SHA256_DIGEST_LENG
 
     free(indices);
     free(buf);
+}
+
+void testSequenziale(unsigned char* target_hash, int min_test_len, int max_test_len, char charSet[]) {
+    printf("--- Inizio Test Brute Force CPU ---\n");
+
+    char found_password[100] = { 0 };
+
+    double iStart, iElaps;
+    iStart = cpuSecond();
+
+    for (int len = min_test_len; len <= max_test_len; len++) {
+        printf("Tentativo lunghezza %d... ", len);
+        fflush(stdout);
+
+        bruteForceSequenziale(len, target_hash, charSet, found_password);
+
+        if (strlen(found_password) > 0) {
+            printf("TROVATA!\n");
+            printf("Password decifrata: %s\n", found_password);
+            break;
+        }
+        else {
+            printf("Nessuna corrispondenza.\n");
+        }
+    }
+
+    // end time 
+    iElaps = cpuSecond() - iStart;
+    printf("Tempo CPU: %.4f secondi\n", iElaps);
+
+    if (strlen(found_password) == 0) {
+        printf("\nPassword non trovata nel range di lunghezza 1-%d.\n", max_test_len);
+    }
 }
