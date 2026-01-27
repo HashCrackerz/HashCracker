@@ -77,7 +77,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", target_hash[i]);
     printf("\n\n"); 
 
-    printf("min_test_len %d , max_test_len %d\n\n", min_test_len, max_test_len);
+    printf("min_test_len %d , max_test_len %d\n", min_test_len, max_test_len);
     printf("CharSet: %s\n", charSet);
 
     /* TEST VERSIONE SEQUENZIALE */
