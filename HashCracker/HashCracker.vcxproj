@@ -112,7 +112,10 @@
     <CudaCompile Include="UTILS\cuda_utils.cu" />
   </ItemGroup>
   <ItemGroup>
-    <Text Include="ASSETS\CharSet.txt" />
+    <Text Include="ASSETS\CharSet.txt">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+    </Text>
     <Text Include="TODO.md" />
   </ItemGroup>
   <ItemGroup>

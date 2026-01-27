@@ -368,6 +368,5 @@ FodyWeavers.xsd
 
 # Ignora file di testo pesanti (Dizionari/Wordlist)
 # Se vuoi versionare piccoli txt (come readme), commenta la riga *.txt
-*.txt
 *.dic
 wordlists/
