@@ -8,6 +8,7 @@
 #include "UTILS/cuda_utils.cuh"
 #include <math.h>
 #include "CUDA_NAIVE/cuda_naive.cuh"
+#include "UTILS/utils.h"
 
 #define CHECK(call) \
 { \
@@ -24,22 +25,46 @@
 
 int main(int argc, char** argv)
 {
-    char charSet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#-.\0"; // 67 caratteri
-    int charSetLen = strlen(charSet);
-    char secret_password[] = "qwerty";
+    /*invocazione: ./kernel [password_in_chiaro] [min_len] [max_len] [file_charset] [dizionario si/no] [file_dizionario] */
 
-    /*
-    if (argc != 2) {
-        printf("Usage: %s <image_file>\n", argv[0]);
+    //char charSet[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#-.\0"; // 67 caratteri
+    //char secret_password[] = "qwerty";
+
+    char* charSet, * secret_password;
+    int min_test_len, max_test_len;
+    bool dizionario = false;
+
+    /* --- CONTROLLO ARGOMENTI DI INVOCAZIONE --- */
+    if (argc != 6 && argc != 7) {
+        printf("Usage: %s <password_in_chiaro> <min_len> <max_len> <file_charset> <dizionario si/no> [file_dizionario]\n", argv[0]);
         return 1;
     }
-    printf("%s Starting...\n", argv[0]);*/
+    secret_password = argv[1];
+    
+    if (!safe_atoi(argv[2], &min_test_len))
+    {
+        perror("Errore nella conversione di min_test_len");
+        exit(1);
+    }
+    if (!safe_atoi(argv[3], &max_test_len))
+    {
+        perror("Errore nella conversione di max_test_len");
+        exit(1);
+    }
 
+    charSet = leggiCharSet(argv[4]);
+    int charSetLen = strlen(charSet);
+
+    if (argv[5][0] == 'S' || argv[5][0] == 's' || argv[5][0] == 'Y' || argv[5][0] == 'y') 
+    {
+        dizionario = true;
+    }
+    
+    printf("%s Starting...\n", argv[0]);
+    
     //Imposta il device CUDA
     int dev = 0;
-    cudaDeviceProp deviceProp;
-    CHECK(cudaGetDeviceProperties(&deviceProp, dev)); //Ottiene le proprietà del device 
-    printf("Using Device %d: %s\n", dev, deviceProp.name);
+    printDeviceProperties(dev);
     CHECK(cudaSetDevice(dev)); //Seleziona il device CUDA
 
     /* argomenti per invocare le funzioni di hash*/
@@ -47,17 +72,16 @@ int main(int argc, char** argv)
 
     SHA256((const unsigned char*)secret_password, strlen(secret_password), target_hash);
 
-    printf("Target (segreto): '%s'\n", secret_password);
+    printf("\nTarget (segreto): '%s'\n", secret_password);
     printf("Hash Target: ");
     for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) printf("%02x", target_hash[i]);
-    printf("\n\n");
-    int max_test_len = 6;
-    int min_test_len = 1; 
+    printf("\n\n"); 
 
     printf("min_test_len %d , max_test_len %d\n\n", min_test_len, max_test_len);
+    printf("CharSet: %s\n", charSet);
 
     /* TEST VERSIONE SEQUENZIALE */
-    testSequenziale(target_hash, min_test_len, max_test_len, charSet);
+    //testSequenziale(target_hash, min_test_len, max_test_len, charSet);
 
     int blockSize = 256;
 
@@ -109,6 +133,7 @@ int main(int argc, char** argv)
     CHECK(cudaFree(d_target_hash));
     CHECK(cudaFree(d_found));
     CHECK(cudaFree(d_result));
+    free(charSet);
 
     return 0;
 }

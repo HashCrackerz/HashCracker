@@ -8,6 +8,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sequenziale\sequenziale.cpp" />
+    <ClCompile Include="UTILS\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Sequenziale\sequenziale.h" />
@@ -15,8 +16,10 @@
     <ClInclude Include="SHA256_CUDA\sha256.cuh" />
     <ClInclude Include="CUDA_NAIVE\cuda_naive.cuh" />
     <ClInclude Include="UTILS\cuda_utils.cuh" />
+    <ClInclude Include="UTILS\utils.h" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="TODO.md" />
+    <Text Include="ASSETS\CharSet.txt" />
   </ItemGroup>
 </Project>

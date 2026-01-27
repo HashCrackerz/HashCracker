@@ -112,6 +112,7 @@
     <CudaCompile Include="UTILS\cuda_utils.cu" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="ASSETS\CharSet.txt" />
     <Text Include="TODO.md" />
   </ItemGroup>
   <ItemGroup>
@@ -119,6 +120,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="UTILS\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CUDA_NAIVE\cuda_naive.cuh" />
@@ -132,6 +134,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
     <ClInclude Include="UTILS\cuda_utils.cuh" />
+    <ClInclude Include="UTILS\utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
