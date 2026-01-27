@@ -100,6 +100,7 @@
     </CudaLink>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <CudaCompile Include="CUDAv1\cuda_v1.cu" />
     <CudaCompile Include="CUDA_NAIVE\cuda_naive.cu" />
     <CudaCompile Include="kernel.cu">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
@@ -126,6 +127,7 @@
     <ClCompile Include="UTILS\utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CUDAv1\cuda_v1.cuh" />
     <ClInclude Include="CUDA_NAIVE\cuda_naive.cuh" />
     <ClInclude Include="Sequenziale\sequenziale.h" />
     <ClInclude Include="SHA256_CUDA\config.h">

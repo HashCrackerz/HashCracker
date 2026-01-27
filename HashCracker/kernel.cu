@@ -9,6 +9,7 @@
 #include <math.h>
 #include "CUDA_NAIVE/cuda_naive.cuh"
 #include "UTILS/utils.h"
+#include "CUDAv1/cuda_v1.cuh"
 
 #define CHECK(call) \
 { \
@@ -81,11 +82,15 @@ int main(int argc, char** argv)
     printf("CharSet: %s\n", charSet);
 
     /* TEST VERSIONE SEQUENZIALE */
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
     //testSequenziale(target_hash, min_test_len, max_test_len, charSet);
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
     int blockSize = 256;
 
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
     /* TEST VERSIONE CUDA NAIVE */
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
     printf("--- Inizio Test Brute Force GPU NAIVE ---\n");
     // Allocazione variaibli device
     BYTE* d_target_hash;
@@ -102,8 +107,8 @@ int main(int argc, char** argv)
     CHECK(cudaMalloc((void**)&d_found, sizeof(bool)));
     CHECK(cudaMemset(d_found, false, sizeof(bool)));
 
-    CHECK(cudaMalloc((void**)&d_result, MAX_CANDIDATE * sizeof(char)));  
-    CHECK(cudaMemset(d_result, 0, max_test_len * sizeof(char))); 
+    CHECK(cudaMalloc((void**)&d_result, MAX_CANDIDATE * sizeof(char)));
+    CHECK(cudaMemset(d_result, 0, max_test_len * sizeof(char)));
 
 
     for (int len = min_test_len; len <= max_test_len; len++) 
@@ -133,7 +138,62 @@ int main(int argc, char** argv)
     CHECK(cudaFree(d_target_hash));
     CHECK(cudaFree(d_found));
     CHECK(cudaFree(d_result));
+
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+    /* ---- TEST VERSIONE CUDA v1 ---- */
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+    printf("--- Inizio Test Brute Force GPU v1 ---\n");
+    // Allocazione variaibli device
+    __constant__ BYTE* d_target_hash;
+    __constant__ char* d_charSet;
+    char* d_result;
+    bool* d_found;
+    char h_result[MAX_CANDIDATE];
+
+    CHECK(cudaMemcpyToSymbol(d_target_hash, target_hash, SHA256_DIGEST_LENGTH * sizeof(BYTE)));
+
+    CHECK(cudaMemcpyToSymbol(d_charSet, charSet, charSetLen * sizeof(char)));
+
+    CHECK(cudaMalloc((void**)&d_found, sizeof(bool)));
+    CHECK(cudaMemset(d_found, false, sizeof(bool)));
+
+    CHECK(cudaMalloc((void**)&d_result, MAX_CANDIDATE * sizeof(char)));
+    CHECK(cudaMemset(d_result, 0, max_test_len * sizeof(char)));
+
+
+    for (int len = min_test_len; len <= max_test_len; len++)
+    {
+        unsigned long long totalCombinations = pow((double)charSetLen, (double)len);
+        printf("Controllo kernel naive con lunghezza %d (Combinazioni tot: %llu)...\n", len, totalCombinations);
+
+        int numBlocks = (totalCombinations + blockSize - 1) / blockSize;
+
+        bruteForceKernel_Naive << <numBlocks, blockSize >> > (
+            len,
+            d_target_hash,
+            d_charSet,
+            d_result,
+            charSetLen,
+            totalCombinations,
+            d_found
+            );
+    }
+
+    CHECK(cudaDeviceSynchronize()); // Attendo terminazione kernel 
+    CHECK(cudaMemcpy(h_result, d_result, sizeof(char) * MAX_CANDIDATE, cudaMemcpyDeviceToHost));
+    printf("Password decifrata: %s\n", h_result);
+
+    // Deallocazione variaibli device
+    CHECK(cudaFree(d_charSet));
+    CHECK(cudaFree(d_target_hash));
+    CHECK(cudaFree(d_found));
+    CHECK(cudaFree(d_result));
+
     free(charSet);
+
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
+    /* ---- TEST VERSIONE CUDA v2 ---- */
+    /*-----------------------------------------------------------------------------------------------------------------------------------------*/
 
     return 0;
 }

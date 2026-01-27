@@ -5,6 +5,7 @@
     <CudaCompile Include="SHA256_CUDA\sha256.cu" />
     <CudaCompile Include="CUDA_NAIVE\cuda_naive.cu" />
     <CudaCompile Include="UTILS\cuda_utils.cu" />
+    <CudaCompile Include="CUDAv1\cuda_v1.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Sequenziale\sequenziale.cpp" />
@@ -17,6 +18,7 @@
     <ClInclude Include="CUDA_NAIVE\cuda_naive.cuh" />
     <ClInclude Include="UTILS\cuda_utils.cuh" />
     <ClInclude Include="UTILS\utils.h" />
+    <ClInclude Include="CUDAv1\cuda_v1.cuh" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="TODO.md" />
