@@ -6,9 +6,7 @@
 #include <stdio.h>
 #include "../SHA256_CUDA/sha256.cuh"
 #include "../SHA256_CUDA/config.h"
-
-#define MAX_CANDIDATE 6
-#define MAX_CHARSET_LENGTH 67 
+#include "../UTILS/costanti.h"
 
 extern __constant__ BYTE d_target_hash[SHA256_DIGEST_LENGTH];
 extern __constant__ char d_charSet[MAX_CHARSET_LENGTH];

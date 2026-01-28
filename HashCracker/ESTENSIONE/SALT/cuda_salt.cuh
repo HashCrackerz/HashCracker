@@ -6,11 +6,7 @@
 #include <stdio.h>
 #include "../../SHA256_CUDA/sha256.cuh"
 #include "../../SHA256_CUDA/config.h"
-
-//TODO da mettere in un file a parte (.h o simile) per evitare duplicazione
-#define MAX_CANDIDATE 10
-#define MAX_CHARSET_LENGTH 67 
-#define MAX_SALT_LENGTH 4
+#include "../../UTILS/costanti.h"
 
 extern __constant__ BYTE d_target_hash[SHA256_DIGEST_LENGTH];
 extern __constant__ char d_charSet[MAX_CHARSET_LENGTH];

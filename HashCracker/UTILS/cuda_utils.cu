@@ -82,4 +82,6 @@ void printDeviceProperties(int deviceId) {
 
     // 14. Texture Alignment
     printf("14. Texture Alignment: %lu bytes\n", prop.textureAlignment);
+
+    printf("\n");
 }

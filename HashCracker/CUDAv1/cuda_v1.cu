@@ -5,15 +5,10 @@
 #include <stdio.h>
 
 #define MAX_CANDIDATE 16
-// La dimensione deve corrispondere a quella definita in kernel.cu
 #define MAX_CHARSET_LENGTH 67 
 
-// --- PARTI MANCANTI FONDAMENTALI ---
-// "extern" dice: "Queste variabili esistono in un altro file (kernel.cu), fidati di me."
-// Devono avere lo stesso tipo, nome e dimensione.
 extern __constant__ BYTE d_target_hash[SHA256_DIGEST_LENGTH];
 extern __constant__ char d_charSet[MAX_CHARSET_LENGTH];
-// -----------------------------------
 
 __global__ void bruteForceKernel_v1(int len, char* d_result, int charSetLen, unsigned long long totalCombinations, bool* d_found)
 {

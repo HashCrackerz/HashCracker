@@ -10,6 +10,7 @@
 #include "CUDA_NAIVE/cuda_naive.cuh"
 #include "UTILS/utils.h"
 #include "CUDAv2/cuda_v2.cuh"
+#include "UTILS/costanti.h"
 
 #define CHECK(call) \
 { \
@@ -21,9 +22,6 @@
         exit(1); \
     } \
 }
-
-#define MAX_CANDIDATE 16
-#define MAX_CHARSET_LENGTH 67
 
 __constant__ BYTE d_target_hash[SHA256_DIGEST_LENGTH];
 __constant__ char d_charSet[MAX_CHARSET_LENGTH];

@@ -10,6 +10,7 @@
 #include "CUDA_NAIVE/cuda_naive.cuh"
 #include "UTILS/utils.h"
 #include "ESTENSIONE/SALT/cuda_salt.cuh"
+#include "UTILS/costanti.h"
 
 #define CHECK(call) \
 { \
@@ -21,10 +22,6 @@
         exit(1); \
     } \
 }
-
-#define MAX_CANDIDATE 10
-#define MAX_CHARSET_LENGTH 67
-#define MAX_SALT_LENGTH 4
 
 __constant__ BYTE d_target_hash[SHA256_DIGEST_LENGTH];
 __constant__ char d_charSet[MAX_CHARSET_LENGTH];

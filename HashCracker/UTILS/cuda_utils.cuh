@@ -5,8 +5,8 @@
 #include <stdio.h>
 #include "../SHA256_CUDA _OPT/config.h"
 #include "../CUDAv2/cuda_v2.cuh"
+#include "../UTILS/costanti.h"
 
-# define SHA256_DIGEST_LENGTH    32
 
 __device__ void idxToString(unsigned long long idx, char* result, int len, char* charset, int charsetLen);
 
