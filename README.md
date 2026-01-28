@@ -30,10 +30,13 @@ Memory) e delle risorse di calcolo.
 - `UTILS/`: Funzioni di supporto (I/O file, parsing argomenti).
 - `SHA256_CUDA/`: implementazione **CUDA per SHA256**, basata sull'implementazione di [mochimodev](https://github.com/mochimodev/cuda-hashing-algos/blob/master/sha256.cu).
 - `SHA256_CUDA_OPT/`: implementazione **CUDA ottimizzata per SHA256** (usato da CUDAv2).
-- `convert_to_hip.ps1`: Script PowerShell per il **porting automatico** su AMD ROCm/HIP.
+- `ESTENSIONE/`: contiene l'implementazione delle'estensione del progetto, ossia l'attacco a dizionario e l'hash cracking con salt.
+- `convert_to_hip.ps1` (branch [`amd-port`](https://github.com/HashCrackerz/HashCracker/tree/amd-port/HashCracker)): Script PowerShell per il **porting automatico** su AMD ROCm/HIP.
 - `kernel_[versione_progetto].cu`: file per eseguire la corrispondente versione.
 Tutte le versioni CUDA[versione_progetto] (eseguite dai rispettivi file kernel) hanno come dipendenza i file di
 `UTILS` e `SHA256_CUDA`, ad eccezione della CUDAv2 che usa `SHA256_CUDA_OPT` invece di `SHA256_CUDA`.
+
+Il kernel CUDA estensione ha le stesse depiendenze della v2 (inclusa) a cui si aggiunge quanto contenuto nella cartella `ESTENSIONE`.
 
 Per la versione AMD (RDNA) con HIP si può sostanzialmente utilizzare il medesimo codice NVIDIA, eseguendo lo script di 
 porting, il quale si occupa di tradurre opportunamente le funzioni, i tipi e importare le diverse librerie, oltre che
@@ -94,8 +97,10 @@ Il progetto include uno script per convertire automaticamente il codice CUDA in 
 ## 💻 Utilizzo
 Il programma accetta i parametri da riga di comando per la massima flessibilità:
 ```cmd
-./brute_force_cuda <blockSize> <hash_target> <min_len> <max_len> <file_charset> <dizionario-si/no> [file_dizionario]
+./brute_force_cuda [<blockSize>] <hash_target> <min_len> <max_len> <file_charset> [<dizionario-si/no> <file_dizionario>]
 ```
+La `blockSize` va passata sempre e solo negli script paralleli su gpu (sia CUDA che HIP).
+Il dizionario (flag e file path) va passato solo negli script estensione.
 
 Esempio:
 
