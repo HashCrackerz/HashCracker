@@ -1,9 +1,15 @@
 ### Nota:
 
-Questa versione contiene script e porting per **AMD HIP**, il branch [main](https://github.com/HashCrackerz/HashCracker/main) contiene la versione CUDA originale.
+Questa versione contiene script e porting per **AMD HIP**, il branch [main](https://github.com/HashCrackerz/HashCracker/tree/main) contiene la versione CUDA originale.
 
 ---
-# CUDA SHA-256 Brute Force & Dictionary (salted) Password Cracker
+<p align="left">
+  <img width="150" alt="logo" src="https://github.com/user-attachments/assets/73297594-3581-4afd-ad0b-39d4bc0e66bf" />
+</p>
+
+# HashCracker
+## _Parallel SHA-256 Brute Force & Dictionary (salted) Password Cracker_
+
 
 ![alt text](https://img.shields.io/badge/Language-C++%20%7C%20CUDA-green)
 
