@@ -116,6 +116,7 @@ hipcc -fgpu-rdc -O3 -std=c++14 --offload-arch=native `
     -L"D:\OpenSSL-Win64\lib\VC\x64\MTd" `
     -l libcrypto.lib `
     -D_CRT_SECURE_NO_WARNINGS `
+    -Rpass-analysis=kernel-resource-usage `
     -o naive_amd.exe
 
 hipcc -fgpu-rdc -O3 -std=c++14 --offload-arch=native `
@@ -129,6 +130,7 @@ hipcc -fgpu-rdc -O3 -std=c++14 --offload-arch=native `
     -L"D:\OpenSSL-Win64\lib\VC\x64\MTd" `
     -l libcrypto.lib `
     -D_CRT_SECURE_NO_WARNINGS `
+    -Rpass-analysis=kernel-resource-usage `
     -o v1_amd.exe   
 
 hipcc -fgpu-rdc -O3 -std=c++14 --offload-arch=native `
@@ -142,4 +144,5 @@ hipcc -fgpu-rdc -O3 -std=c++14 --offload-arch=native `
     -L"D:\OpenSSL-Win64\lib\VC\x64\MTd" `
     -l libcrypto.lib `
     -D_CRT_SECURE_NO_WARNINGS `
+    -Rpass-analysis=kernel-resource-usage `
     -o v2_amd.exe   
