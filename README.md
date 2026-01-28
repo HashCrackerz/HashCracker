@@ -94,14 +94,14 @@ Il progetto include uno script per convertire automaticamente il codice CUDA in 
 ## 💻 Utilizzo
 Il programma accetta i parametri da riga di comando per la massima flessibilità:
 ```cmd
-./brute_force_cuda <hash_target> <min_len> <max_len> <file_charset> <dizionario-si/no> [file_dizionario]
+./brute_force_cuda <blockSize> <hash_target> <min_len> <max_len> <file_charset> <dizionario-si/no> [file_dizionario]
 ```
 
 Esempio:
 
 Cercare la password dell'hash (corrispondente a "qwerty") con lunghezza 6, usando il charset standard:
 ```cmd
-./brute_force_cuda qwerty 1 6 ASSETS/CharSet.txt No
+./brute_force_cuda 256 qwerty 1 6 ASSETS/CharSet.txt No
 ```
 
 ## 📊 Analisi delle Performance
