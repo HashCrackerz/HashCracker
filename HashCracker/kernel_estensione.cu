@@ -23,6 +23,7 @@
     } \
 }
 
+//memoria const
 __constant__ BYTE d_target_hash[SHA256_DIGEST_LENGTH];
 __constant__ char d_charSet[MAX_CHARSET_LENGTH];
 __constant__ char d_salt[MAX_SALT_LENGTH];
