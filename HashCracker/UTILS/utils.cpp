@@ -82,7 +82,7 @@ int testLogin(char password[], int len, BYTE *target_hash, char salt[])
     BYTE hashed_password[SHA256_DIGEST_LENGTH];
     SHA256((const unsigned char*)salted_password, strlen(salted_password), hashed_password);
 
-    if (memcmp(hashed_password, target_hash, SHA_DIGEST_LENGTH * sizeof(BYTE)) == 0)
+    if (memcmp(hashed_password, target_hash, SHA256_DIGEST_LENGTH * sizeof(BYTE)) == 0)
     {
         //hash corrisponde
         result = 1; 

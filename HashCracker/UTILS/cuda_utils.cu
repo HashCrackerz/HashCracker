@@ -1,6 +1,4 @@
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-#include <stdio.h>
+#include "cuda_utils.cuh"
 
 
 __device__ void idxToString(unsigned long long idx, char* result, int len, char* charset, int charsetLen) {
@@ -31,13 +29,14 @@ float bytesToGB(size_t bytes) {
     return (float)bytes / (1024.0f * 1024.0f * 1024.0f);
 }
 
+
 // Funzione per stampare le proprietà di un dispositivo
 void printDeviceProperties(int deviceId) {
     cudaDeviceProp prop;
     cudaGetDeviceProperties(&prop, deviceId);
 
     printf("\n=================================================\n");
-    printf("Dispositivo %d: %s\n", deviceId, prop.name);
+    printf("Dispositivo %d: %s", deviceId, prop.name);
     printf("\n=================================================\n");
 
     // 1. Compute Capability
