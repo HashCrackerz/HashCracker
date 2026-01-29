@@ -92,6 +92,8 @@ int testLogin(char password[], int len, BYTE *target_hash, char salt[])
     return result;
 }
 
+/*funzione che si occupa di linearizzare il dizionario e inserire del padding per avere uno stride 
+costante tra le parole*/
 char* load_flattened_dictionary(const char* filename, int* outNumWords) {
     FILE* f = fopen(filename, "r");
     if (!f) {
