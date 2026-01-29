@@ -91,3 +91,66 @@ int testLogin(char password[], int len, BYTE *target_hash, char salt[])
     free(salted_password);
     return result;
 }
+
+char* load_flattened_dictionary(const char* filename, int* outNumWords) {
+    FILE* f = fopen(filename, "r");
+    if (!f) {
+        perror("Errore apertura dizionario");
+        return NULL;
+    }
+
+    int count = 0;
+    char line[256];
+
+    while (fgets(line, sizeof(line), f)) {
+        int len = strlen(line);
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            len--;
+        }
+
+        if (len > 0) {
+            count++;
+        }
+    }
+
+    if (count == 0) {
+        printf("Attenzione: Il dizionario sembra vuoto.\n");
+        fclose(f);
+        return NULL;
+    }
+
+    char* flatDict = (char*)malloc(count * DICT_WORD_LEN * sizeof(char));
+    if (!flatDict) {
+        perror("Errore malloc dizionario host");
+        fclose(f);
+        return NULL;
+    }
+
+    rewind(f);
+
+    int idx = 0;
+    while (fgets(line, sizeof(line), f) && idx < count) {
+        int len = strlen(line);
+        while (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            line[len - 1] = '\0'; 
+            len--;
+        }
+
+        if (len == 0) continue;
+
+        if (len >= DICT_WORD_LEN) {
+            len = DICT_WORD_LEN - 1;
+            line[len] = '\0';
+        }
+
+        char* dest = &flatDict[idx * DICT_WORD_LEN];
+
+        memset(dest, 0, DICT_WORD_LEN);
+        memcpy(dest, line, len);
+        idx++;
+    }
+
+    fclose(f);
+    *outNumWords = idx; 
+    return flatDict;
+}

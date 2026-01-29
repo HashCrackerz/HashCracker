@@ -11,6 +11,7 @@
 #include "UTILS/utils.h"
 #include "ESTENSIONE/SALT/cuda_salt.cuh"
 #include "UTILS/costanti.h"
+#include "ESTENSIONE/DIZIONARIO/cuda_dizionario.cuh"
 
 #define CHECK(call) \
 { \
@@ -49,7 +50,7 @@ int main(int argc, char** argv)
 
     if (!safe_atoi(argv[1], &blockSize))
     {
-        perror("Errore nella conversione di min_test_len");
+        perror("Errore nella conversione di blockSize");
         exit(1);
         if (blockSize % 32 != 0)
         {
@@ -77,6 +78,7 @@ int main(int argc, char** argv)
     {
         dizionario = true;
     }
+    char* dict_path = (argc == 9) ? argv[8] : "ASSETS/rockyou.txt";
 
     //Imposta il device CUDA
     int dev = 0;
@@ -102,6 +104,7 @@ int main(int argc, char** argv)
     char* d_result;
     bool* d_found;
     char h_result[MAX_CANDIDATE];
+    bool password_found = false;
 
     CHECK(cudaMemcpyToSymbol(d_target_hash, target_hash, SHA256_DIGEST_LENGTH * sizeof(BYTE)));
     CHECK(cudaMemcpyToSymbol(d_charSet, charSet, charSetLen * sizeof(char)));
@@ -114,29 +117,111 @@ int main(int argc, char** argv)
     CHECK(cudaMalloc((void**)&d_result, MAX_CANDIDATE * sizeof(char)));
     CHECK(cudaMemset(d_result, 0, max_test_len * sizeof(char)));
 
-    //NOTA: le test_len includono anche la lunghezza del salt
-    for (int len = min_test_len; len <= max_test_len; len++)
+
+    if (dizionario)
     {
-        unsigned long long totalCombinations = pow((double)charSetLen, (double)len);
-        printf("Controllo kernel naive con lunghezza %d (Combinazioni tot: %llu)...\n", len, totalCombinations);
+        //provo con attacco a dizionario: se la parola è tra quelle del dizionario la trovo 
+        //immediatamente, altrimenti provo con l'attacco classico
+        printf("---  Attacco a Dizionario CUDA ---\n");
+        printf("Lettura e linearizzazione file '%s'...\n", dict_path);
 
-        int numBlocks = (totalCombinations + blockSize - 1) / blockSize;
+        int numWords = 0;
 
-        bruteForceKernel_salt << <numBlocks, blockSize >> > (
-            len,
-            d_result,
-            charSetLen,
-            totalCombinations,
-            d_found
-            );
+        char* h_flatDict = load_flattened_dictionary(dict_path, &numWords);
+
+        if (h_flatDict != NULL && numWords > 0)
+        {
+            char* d_dictionary = NULL;
+            // Calcolo dimensione totale buffer: numero parole * lunghezza fissa (padding incluso)
+            size_t dictSizeBytes = (size_t)numWords * DICT_WORD_LEN * sizeof(char);
+
+            // Allocazione Device
+            CHECK(cudaMalloc((void**)&d_dictionary, dictSizeBytes));
+            // Copia su GPU
+            CHECK(cudaMemcpy(d_dictionary, h_flatDict, dictSizeBytes, cudaMemcpyHostToDevice));
+
+
+            unsigned long long totalSalts = pow((double)charSetLen, (double)strlen(salt));
+            int numBlocks = (numWords + blockSize - 1) / blockSize;
+
+            printf("Lancio Kernel Dizionario su %d parole (%.2f MB)...\n", numWords, dictSizeBytes / (1024.0 * 1024.0));
+
+            bruteForceKernel_dizionario << <numBlocks, blockSize >> > (
+                d_dictionary, numWords, strlen(salt),
+                charSetLen, totalSalts, d_result, d_found
+                );
+            CHECK(cudaDeviceSynchronize());
+
+            // Check Risultato
+            bool h_found = false;
+            CHECK(cudaMemcpy(&h_found, d_found, sizeof(bool), cudaMemcpyDeviceToHost));
+
+            if (h_found) {
+                CHECK(cudaMemcpy(h_result, d_result, MAX_CANDIDATE * sizeof(char), cudaMemcpyDeviceToHost));
+                printf("\n*** PASSWORD TROVATA (Dizionario): %s ***\n", h_result);
+                password_found = true;
+            }
+            else {
+                printf("Non trovata nel dizionario.\n");
+            }
+
+            // Cleanup 
+            free(h_flatDict);
+            CHECK(cudaFree(d_dictionary));
+        }
+        else {
+            printf("Impossibile caricare il dizionario o dizionario vuoto.\n");
+        }
+    }
+
+    // Se non trovata nel dizionario, o se dizionario disattivato, procedo col Brute Force
+    if (!password_found)
+    {
+        if (dizionario) printf("\n--- Password non trovata con attacco a dizionario, provo con brute force classico (con salt)  ---\n");
+
+        CHECK(cudaMemset(d_found, false, sizeof(bool)));
+
+        //NOTA: le test_len includono anche la lunghezza del salt
+        for (int len = min_test_len; len <= max_test_len; len++)
+        {
+            if (password_found) break;
+
+            unsigned long long totalCombinations = pow((double)charSetLen, (double)len);
+            printf("Controllo kernel naive con lunghezza %d (Combinazioni tot: %llu)...\n", len, totalCombinations);
+
+            int numBlocks = (totalCombinations + blockSize - 1) / blockSize;
+
+            bruteForceKernel_salt << <numBlocks, blockSize >> > (
+                len,
+                d_result,
+                charSetLen,
+                totalCombinations,
+                d_found
+                );
+
+            CHECK(cudaDeviceSynchronize());
+
+            // Check immediato per uscire dal ciclo for
+            bool h_found_local = false;
+            CHECK(cudaMemcpy(&h_found_local, d_found, sizeof(bool), cudaMemcpyDeviceToHost));
+            if (h_found_local) password_found = true;
+        }
     }
 
     CHECK(cudaDeviceSynchronize()); // Attendo terminazione kernel 
-    CHECK(cudaMemcpy(h_result, d_result, sizeof(char) * MAX_CANDIDATE, cudaMemcpyDeviceToHost));
-    printf("Password + salt decifrati: %s\n", h_result);
-    if (strlen(h_result) > 0)
+
+    // Recupero risultati finali
+    // (Se password_found è true, h_result è già stato popolato se trovato col dizionario, 
+    // ma se trovato col salt devo copiarlo ora o l'avrei dovuto copiare nel loop. 
+    // Per sicurezza faccio una copia finale se d_found è true)
+
+    bool final_found = false;
+    CHECK(cudaMemcpy(&final_found, d_found, sizeof(bool), cudaMemcpyDeviceToHost));
+
+    if (final_found)
     {
-        printf("Stringa Totale (Pass+Salt) trovata: %s\n", h_result);
+        CHECK(cudaMemcpy(h_result, d_result, sizeof(char) * MAX_CANDIDATE, cudaMemcpyDeviceToHost));
+        printf("\nStringa Totale (Pass+Salt) trovata: %s\n", h_result);
 
         char* final_decrypted_pass = NULL;
         int totalLen = strlen(h_result);
@@ -146,19 +231,15 @@ int main(int argc, char** argv)
         if (realPassLen > 0)
         {
             // Controllo se il salt è all'INIZIO
-            // (Confronto i primi N caratteri di h_result con il salt)
             if (strncmp(h_result, salt, mySaltLen) == 0)
             {
-                // La password è tutto ciò che viene dopo il salt
                 final_decrypted_pass = (char*)malloc(sizeof(char) * (realPassLen + 1));
                 strcpy(final_decrypted_pass, h_result + mySaltLen);
                 printf("Schema rilevato: [SALT] + [PASSWORD]\n");
             }
             // Controllo se il salt è alla FINE
-            // (Confronto la parte finale di h_result con il salt)
             else if (strncmp(h_result + realPassLen, salt, mySaltLen) == 0)
             {
-                // La password è la prima parte della stringa
                 final_decrypted_pass = (char*)malloc(sizeof(char) * (realPassLen + 1));
                 strncpy(final_decrypted_pass, h_result, realPassLen);
                 final_decrypted_pass[realPassLen] = '\0'; // Terminatore manuale
@@ -178,7 +259,7 @@ int main(int argc, char** argv)
         printf("Nessuna password trovata nel range specificato.\n");
     }
 
-    // Deallocazione variabili 
+    // Cleanup
     CHECK(cudaFree(d_found));
     CHECK(cudaFree(d_result));
 
