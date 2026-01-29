@@ -29,6 +29,7 @@ Memory) e delle risorse di calcolo.
 - **Multi-Platform**: Codice nativo CUDA per **NVIDIA** e script di porting (semi) automatico per **AMD** HIP.
 
 ## 📂 Struttura del Progetto
+- `ASSETS/`: contiene i file usati per il cracking (charset e dizionario).
 - `Sequenziale/`: Implementazione **sequenziale** di riferimento (usa [OpenSSL](https://openssl-library.org/)).
 - `CUDA_NAIVE/`: **Prima implementazione GPU** (uso memoria globale).
 - `CUDAv1/`: Ottimizzazione memoria (uso Constant Memory per charset e target).
@@ -36,30 +37,19 @@ Memory) e delle risorse di calcolo.
 - `UTILS/`: Funzioni di supporto (I/O file, parsing argomenti).
 - `SHA256_CUDA/`: implementazione **CUDA per SHA256**, basata sull'implementazione di [mochimodev](https://github.com/mochimodev/cuda-hashing-algos/blob/master/sha256.cu).
 - `SHA256_CUDA_OPT/`: implementazione **CUDA ottimizzata per SHA256** (usato da CUDAv2).
-- `ESTENSIONE/`: contiene l'implementazione delle'estensione del progetto, ossia l'attacco a dizionario e l'hash cracking con salt.
-- `convert_to_hip.ps1` (branch [`amd-port`](https://github.com/HashCrackerz/HashCracker/tree/amd-port/HashCracker)): Script PowerShell per il **porting automatico** su AMD ROCm/HIP.
+- `ESTENSIONE/`: contiene l'implementazione delle'estensione del progetto, ossia l'attacco a dizionario e l'hash cracking con salt (richiamate dal `kernel_estensione.cu`.
 - `kernel_[versione_progetto].cu`: file per eseguire la corrispondente versione.
 Tutte le versioni CUDA[versione_progetto] (eseguite dai rispettivi file kernel) hanno come dipendenza i file di
-`UTILS` e `SHA256_CUDA`, ad eccezione della CUDAv2 che usa `SHA256_CUDA_OPT` invece di `SHA256_CUDA`.
-
-Il kernel CUDA estensione ha le stesse depiendenze della v2 (inclusa) a cui si aggiunge quanto contenuto nella cartella `ESTENSIONE`.
-
-Per la versione AMD (RDNA) con HIP si può sostanzialmente utilizzare il medesimo codice NVIDIA, eseguendo lo script di 
-porting, il quale si occupa di tradurre opportunamente le funzioni, i tipi e importare le diverse librerie, oltre che
-convertire ad esempio gli import con i doppo apici in parentesi angolari. I file vengono sovrascritti e rinominati, ma la
- struttura progettuale resta la medesima. Una conversione funzionante si trova nel branch [`amd-port`](https://github.com/HashCrackerz/HashCracker/tree/amd-port/HashCracker).
+`UTILS` e `SHA256_CUDA`, ad eccezione della CUDAv2 ed estensione che usano `SHA256_CUDA_OPT` invece di `SHA256_CUDA`. \
+_Nota_: il dizionario usato é una versione trimmata a password di lunghezza 64 del [rockyou.txt](https://weakpass.com/wordlists/rockyou.txt). La nostra versione é disponibile nella cartella `ASSETS` da unzippare (a causa dei limiti di GitHub).
 
 ## 🛠️ Requisiti
 - Hardware:
   - **GPU NVIDIA** (Compute Capability 5.0+)
-  - Opzionale per HIP: **GPU AMD**
-
 - Software:
   - NVIDIA **CUDA Toolkit** (11.0+)
   - **OpenSSL** (per l'implementazione CPU)
   - **Compilatore C++** (MSVC su Windows, GCC/Clang su Linux)
-  - **PowerShell** (per lo script di porting)
-  - **ROCm** (per compilare con hipcc e per l'ambiente AMD).
  
 ## 🚀 Compilazione
 
@@ -76,48 +66,26 @@ nvcc -arch=sm_89 -rdc=true -O3 \
 ```
 _(cambiare i nomi dei file e delle dipendenze in base alla versione da compilare)_
 
-### AMD HIP (Porting)
-Il progetto include uno script per convertire automaticamente il codice CUDA in HIP.
-1. Eseguire lo script di conversione:
-   ```powershell
-   .\convert_to_hip.ps1
-   ```
-2. Compilare con hipcc (esempio per Windows):
-   ```powershell
-   hipcc -fgpu-rdc -O3 -std=c++14 --offload-arch=native `
-      kernel_naive.cu `
-      HIP_NAIVE/hip_naive.cu `
-      SHA256_HIP/sha256.cu `
-      UTILS/hip_utils.cu `
-      UTILS/utils.cpp `
-      -I. -I./HIP_NAIVE -I./SHA256_HIP -I./UTILS `
-      -I"D:\OpenSSL-Win64\include" `
-      -L"D:\OpenSSL-Win64\lib\VC\x64\MTd" `
-      -l libcrypto.lib `
-      -D_CRT_SECURE_NO_WARNINGS `
-      -o naive_amd.exe
-   ```
-
-   _(cambiare i nomi dei file e delle dipendenze in base alla versione da compilare)_
 
 ## 💻 Utilizzo
 Il programma accetta i parametri da riga di comando per la massima flessibilità:
 ```cmd
-./brute_force_cuda [<blockSize>] <hash_target> <min_len> <max_len> <file_charset> [<dizionario-si/no> <file_dizionario>]
+./brute_force_cuda [<blockSize>] <hash_target> <min_len> <max_len> <file_charset> [<salt> <dizionario-si/no> <file_dizionario>]
 ```
-La `blockSize` va passata sempre e solo negli script paralleli su gpu (sia CUDA che HIP).
-Il dizionario (flag e file path) va passato solo negli script estensione.
+La `blockSize` va passata sempre e solo negli script paralleli su gpu (sia CUDA che HIP). \
+Il dizionario (flag e file path) e salt vanno passati solo negli script estensione. \
+Nota: nella versione estensione `max_len` comprende la lunghezza del salt. 
 
 Esempio:
 
 Cercare la password dell'hash (corrispondente a "qwerty") con lunghezza 6, usando il charset standard:
 ```cmd
-./brute_force_cuda 256 qwerty 1 6 ASSETS/CharSet.txt No
+./brute_force_cuda 256 qwerty 1 6 ASSETS/CharSet.txt az No
 ```
 
 ## 📊 Analisi delle Performance
 I test sono stati condotti su:
-- sequenziale e AMD: desktop con Ryzen 9 9900X e RX 9070XT
+- sequenziale: Ryzen 9 9900X
 - CUDA: NVIDIA RTX 4060 Laptop e parzialmente Google Colab
 
 ### Approfondimento Tecnico: Analisi
@@ -128,6 +96,9 @@ dell'hash ed evitare latenze di memoria locale/globale. Sebbene l'alto numero di
 
 Inoltre, l'utilizzo di dimensioni del blocco minori (64/128 thread) ha portato a performance migliori rispetto ai classici 256, 
 grazie a una migliore gestione della Tail Effect (quantizzazione delle wave) e minore overhead di scheduling.
+
+L'implementazione dell'estensione ha sostanzialmente le stesse prestazioni della v2 (in quanto utilizza praticamente il metesimo codice), 
+con l'aggiunta che per l'attacco a dizionario, il tempo in caso di hit é certamente inferiore a testare tutte le combinazioni. 
 
 ## 👥 Autori
 - [Andrea Vitale](https://github.com/WHYUBM)
