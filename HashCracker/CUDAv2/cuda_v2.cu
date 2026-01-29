@@ -1,6 +1,6 @@
 #include "cuda_v2.cuh"
 
-__global__ void bruteForceKernel_v2(int len, char* d_result, int charSetLen, unsigned long long totalCombinations, bool* d_found, char *salt, int saltLen)
+__global__ void bruteForceKernel_v2(int len, char* d_result, int charSetLen, unsigned long long totalCombinations)
 {
     unsigned long long idx = (unsigned long long)blockIdx.x * blockDim.x + threadIdx.x;
     unsigned long long stride = (unsigned long long)blockDim.x * gridDim.x;
@@ -33,4 +33,5 @@ __global__ void bruteForceKernel_v2(int len, char* d_result, int charSetLen, uns
         }
         idx += stride;
     }
+
 }
